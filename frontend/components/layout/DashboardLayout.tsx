@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { Sidebar } from "./Sidebar"
 import { Topbar } from "./Topbar"
@@ -10,6 +12,24 @@ import { Topbar } from "./Topbar"
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const { user, isLoading } = useAuth()
+  const isAuthPage = pathname === "/login" || pathname === "/signup"
+
+  useEffect(() => {
+    if (!isAuthPage && !isLoading && !user) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`)
+    }
+  }, [isAuthPage, isLoading, pathname, router, user])
+
+  if (isAuthPage) {
+    return children
+  }
+
+  if (isLoading || !user) {
+    return <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">Loading SocialSense...</div>
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ChevronDown, LogOut, Menu, Search, Settings, User } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,8 +14,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const router = useRouter()
+  const { user, logout } = useAuth()
+  const displayName = user?.name?.trim() || user?.email || "User"
+  const initials = displayName.slice(0, 2).toUpperCase()
+
+  function handleLogout() {
+    logout()
+    router.push("/login")
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -40,6 +52,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         <Button
+          nativeButton={false}
           render={<Link href="/new-analysis" />}
           className="hidden bg-indigo-600 text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-700 sm:inline-flex"
         >
@@ -52,8 +65,9 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
             aria-label="Open user menu"
           >
             <Avatar className="size-9 bg-indigo-100 text-indigo-700">
-              <AvatarFallback className="bg-indigo-100 font-semibold text-indigo-700">JD</AvatarFallback>
+              <AvatarFallback className="bg-indigo-100 font-semibold text-indigo-700">{initials}</AvatarFallback>
             </Avatar>
+            <span className="hidden max-w-32 truncate text-sm font-medium text-slate-700 sm:block">{displayName}</span>
             <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -66,7 +80,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive">
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>
