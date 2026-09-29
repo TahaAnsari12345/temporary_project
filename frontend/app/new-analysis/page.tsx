@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useWatch } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Check, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -10,30 +10,19 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toast"
 import { analyzeUrl } from "@/lib/api"
 
 const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+$/i
-const blueskyPostPattern = /^https:\/\/bsky\.app\/profile\/[^/\s]+\/post\/[^/\s]+$/i
-const blueskySearchPattern = /^(?!https?:\/\/)(?=.{1,100}$)(?:#?[\p{L}\p{N}_-]+(?:[ \t]+#?[\p{L}\p{N}_-]+)*)$/u
-
 const analysisSchema = z.object({
-  platform: z.enum(["youtube", "bluesky"], { message: "Select a platform." }),
   url: z.string().trim().min(1, "Enter a URL or search term."),
 }).superRefine((values, context) => {
-  const matchesPlatform = values.platform === "youtube"
-    ? youtubePattern.test(values.url)
-    : blueskyPostPattern.test(values.url) || blueskySearchPattern.test(values.url)
-
-  if (!matchesPlatform) {
+  if (!youtubePattern.test(values.url)) {
     context.addIssue({
       code: "custom",
       path: ["url"],
-      message: values.platform === "youtube"
-        ? "Enter a YouTube video URL."
-        : "Enter a Bluesky post URL or a keyword/hashtag.",
+      message: "Enter a YouTube video URL.",
     })
   }
 })
@@ -54,9 +43,8 @@ export default function NewAnalysisPage() {
   const timerIds = useRef<ReturnType<typeof setTimeout>[]>([])
   const form = useForm<AnalysisFormValues>({
     resolver: zodResolver(analysisSchema),
-    defaultValues: { platform: "youtube", url: "" },
+    defaultValues: { url: "" },
   })
-  const platform = useWatch({ control: form.control, name: "platform" })
 
   useEffect(() => {
     return () => timerIds.current.forEach(clearTimeout)
@@ -76,11 +64,11 @@ export default function NewAnalysisPage() {
     })
 
     try {
-      await analyzeUrl(values.platform, values.url)
+      const result = await analyzeUrl(values.url)
       stopProgress()
       setActiveStage(stages.length)
       toast.add({ title: "Analysis complete!", type: "success" })
-      router.push("/dashboard")
+      router.push(`/?analysis_id=${encodeURIComponent(result.analysis_id)}`)
     } catch (error) {
       stopProgress()
       setActiveStage(-1)
@@ -98,34 +86,12 @@ export default function NewAnalysisPage() {
         <CardHeader className="space-y-2 border-b border-slate-100 p-6">
           <CardTitle className="text-2xl font-bold tracking-tight text-slate-950">Start a New Analysis</CardTitle>
           <p className="text-sm leading-6 text-slate-500">
-            Paste a YouTube video or Reddit thread URL to analyze emotions, topics, and trends.
+            Paste a YouTube video to analyze emotions, topics, and trends.
           </p>
         </CardHeader>
         <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="platform"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Platform</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full bg-white">
-                          <SelectValue placeholder="Choose a platform" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="youtube">YouTube</SelectItem>
-                        <SelectItem value="bluesky">Bluesky</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="url"
@@ -136,7 +102,7 @@ export default function NewAnalysisPage() {
                       <Input
                         {...field}
                         type="text"
-                        placeholder={platform === "youtube" ? "https://youtube.com/watch?v=..." : "Paste a bsky.app post URL, or type a keyword/hashtag to search"}
+                        placeholder="https://youtube.com/watch?v=..."
                         className="bg-white"
                       />
                     </FormControl>

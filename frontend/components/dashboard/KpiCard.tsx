@@ -24,7 +24,7 @@ const accentStyles: Record<Accent, string> = {
   green: "bg-emerald-100 text-emerald-600",
 }
 
-export function KpiCard({ title, value, icon: Icon, accent, trend }: KpiCardProps) {
+export function KpiCard({ title, value, icon: Icon, accent, trend }: Readonly<KpiCardProps>) {
   const TrendIcon = trend?.direction === "down" ? ArrowDown : ArrowUp
 
   return (

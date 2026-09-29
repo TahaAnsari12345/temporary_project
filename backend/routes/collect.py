@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from models.post import Post
-from services.collector import fetch_bluesky_posts, fetch_youtube_comments
+from services.collector import fetch_youtube_comments
 from utils.db import get_db
 
 
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 class CollectRequest(BaseModel):
-    platform: Literal["youtube", "bluesky"]
+    platform: Literal["youtube"]
     url: str
     max_posts: int = 200
 
@@ -27,11 +27,7 @@ class CollectRequest(BaseModel):
 @router.post("/collect")
 def collect_posts(request: CollectRequest, db: Session = Depends(get_db)) -> dict[str, object]:
     analysis_id = str(uuid4())
-    posts = (
-        fetch_youtube_comments(request.url, request.max_posts)
-        if request.platform == "youtube"
-        else fetch_bluesky_posts(request.url, request.max_posts)
-    )
+    posts = fetch_youtube_comments(request.url, request.max_posts)
     db_posts: list[Post] = []
     sample: list[dict[str, object]] = []
 
